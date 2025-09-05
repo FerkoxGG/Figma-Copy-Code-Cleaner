@@ -15,6 +15,7 @@ const CleanCodeFromFigmaInputSchema = z.object({
   figmaCode: z
     .string()
     .describe('The code extracted from Figma that needs to be cleaned.'),
+  lang: z.enum(['text', 'html', 'css', 'js']).default('text').describe('The language of the code to be cleaned.'),
 });
 export type CleanCodeFromFigmaInput = z.infer<typeof CleanCodeFromFigmaInputSchema>;
 
@@ -27,59 +28,63 @@ export async function cleanCodeFromFigma(input: CleanCodeFromFigmaInput): Promis
   return cleanCodeFromFigmaFlow(input);
 }
 
-const prompt = ai.definePrompt({
-  name: 'cleanCodeFromFigmaPrompt',
-  input: {schema: CleanCodeFromFigmaInputSchema},
-  output: {schema: CleanCodeFromFigmaOutputSchema},
-  prompt: `You are a code cleaning expert. Your task is to clean code extracted from Figma.
-
-You will receive a block of text that may contain the following issues:
-- invisible spaces (non-breaking space, BOM, etc.)
-- typographer's quotes (“ ” ‘ ’)
-- typographer's dashes (– — −)
-- ellipsis character (…)
-- typographer's multiplication character (×)
-- inconsistent line breaks (\r, \r\n)
-
-Replace these characters with their programming-safe equivalents:
-- invisible spaces -> normal space
-- “ ” -> "
-- ‘ ’ -> '
-- – — − -> -
-- … -> ...
-- × -> *
-- Normalize line breaks to \n
-Remove double spaces and trailing whitespace from each line.
-
-Return the cleaned text without adding any explanations or modifications beyond the specified cleaning.
-Maintain the original indentation and code structure.
-
-Input:
-{{figmaCode}}
-
-Output:`,
-});
-
 const cleanCodeFromFigmaFlow = ai.defineFlow(
   {
     name: 'cleanCodeFromFigmaFlow',
     inputSchema: CleanCodeFromFigmaInputSchema,
     outputSchema: CleanCodeFromFigmaOutputSchema,
   },
-  async input => {
-    // Perform character replacements and whitespace cleanup
+  async (input) => {
     let cleanedCode = input.figmaCode
-      .replace(/\u00A0|\uFEFF/g, ' ') // Invisible spaces
-      .replace(/[“”]/g, '"') // Typographer's quotes
-      .replace(/[‘’]/g, "'") // Typographer's quotes
-      .replace(/[–—−]/g, '-') // Typographer's dashes
-      .replace(/…/g, '...') // Ellipsis
-      .replace(/×/g, '*') // Multiplication character
-      .replace(/\r\n|\r/g, '\n') // Line endings
-      .split('\n')
-      .map(line => line.replace(/  +/g, ' ').trimEnd())
-      .join('\n');
+      // 1. Invisibles/Control
+      .replace(/[\u00A0\u2000-\u200D\u2060\uFEFF]/g, ' ')
+      .replace(/[\u2028\u2029]/g, '')
+      // 2. Line Breaks
+      .replace(/\r\n|\r/g, '\n')
+      // 3. Typographic Punctuation
+      .replace(/[“”]/g, '"')
+      .replace(/[‘’]/g, "'")
+      .replace(/[–—−]/g, '-')
+      .replace(/…/g, '...')
+      .replace(/×/g, '*');
 
-    return {cleanedCode};
+    // 4. Spaces and language-specific rules
+    const lines = cleanedCode.split('\n');
+    const processedLines = lines.map(line => {
+      const indentMatch = line.match(/^\s*/);
+      const indentation = indentMatch ? indentMatch[0] : '';
+      let content = line.trimStart();
+      
+      // Trim trailing spaces
+      content = content.trimEnd();
+
+      if (input.lang === 'html' || input.lang === 'text') {
+        // Collapse internal spaces
+        content = content.replace(/\s{2,}/g, ' ');
+      }
+      
+      let processedLine = indentation + content;
+
+      if (input.lang === 'html') {
+        // Specific HTML rules
+        processedLine = processedLine.replace(/<([a-zA-Z0-9]+)\s+([^>]*?)>/g, (match, tagName, attrs) => {
+            let newAttrs = attrs.replace(/([a-zA-Z-]+)=(['"]?)(.*?)\2/g, (attrMatch, name, quote, value) => {
+                let newValue = value;
+                if (name.toLowerCase() === 'target') {
+                    newValue = '_blank';
+                }
+                return `${name}="${newValue}"`;
+            });
+            return `<${tagName} ${newAttrs}>`;
+        });
+        processedLine = processedLine.replace(/(<a[^>]*>)<\/span>(\s*<svg)/g, '$1$2');
+      }
+
+      return processedLine;
+    });
+
+    cleanedCode = processedLines.join('\n');
+
+    return { cleanedCode };
   }
 );

@@ -7,12 +7,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Clipboard, ClipboardCheck, Sparkles, Loader2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+type Language = "text" | "html" | "css" | "js";
 
 export default function Home() {
   const [figmaCode, setFigmaCode] = useState("");
   const [cleanedCode, setCleanedCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
+  const [language, setLanguage] = useState<Language>("text");
   const { toast } = useToast();
 
   const handleCleanCode = async () => {
@@ -28,7 +32,7 @@ export default function Home() {
     setCleanedCode("");
     setIsCopied(false);
     try {
-      const result = await cleanCodeFromFigma({ figmaCode });
+      const result = await cleanCodeFromFigma({ figmaCode, lang: language });
       setCleanedCode(result.cleanedCode);
     } catch (error) {
       console.error("Error cleaning code:", error);
@@ -66,12 +70,23 @@ export default function Home() {
             </p>
           </header>
 
-          <div className="flex justify-center mb-8">
+          <div className="flex justify-center mb-8 gap-4">
+            <Select value={language} onValueChange={(value) => setLanguage(value as Language)}>
+              <SelectTrigger className="w-[180px] text-base h-auto py-3 px-6 rounded-full shadow-md focus:ring-accent-foreground">
+                <SelectValue placeholder="Select language" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="text">Text</SelectItem>
+                <SelectItem value="html">HTML</SelectItem>
+                <SelectItem value="css">CSS</SelectItem>
+                <SelectItem value="js">JavaScript</SelectItem>
+              </SelectContent>
+            </Select>
             <Button
               size="lg"
               onClick={handleCleanCode}
               disabled={isLoading || !figmaCode.trim()}
-              className="bg-accent text-accent-foreground hover:bg-accent/90 focus-visible:ring-accent-foreground shadow-md transition-transform active:scale-95 text-base font-semibold px-8 py-6 rounded-full"
+              className="bg-accent text-accent-foreground hover:bg-accent/90 focus-visible:ring-accent-foreground shadow-md transition-transform active:scale-95 text-base font-semibold px-8 py-3 rounded-full"
               aria-label="Clean the code"
             >
               {isLoading ? (
