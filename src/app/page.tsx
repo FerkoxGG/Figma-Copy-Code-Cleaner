@@ -48,13 +48,32 @@ export default function Home() {
 
   const handleCopy = () => {
     if (!cleanedCode) return;
-    navigator.clipboard.writeText(cleanedCode);
-    setIsCopied(true);
-    toast({
-      title: "Copied!",
-      description: "The cleaned code has been copied to your clipboard.",
-    });
-    setTimeout(() => setIsCopied(false), 3000);
+
+    const textArea = document.createElement("textarea");
+    textArea.value = cleanedCode;
+    textArea.style.position = "fixed";
+    textArea.style.left = "-9999px";
+    document.body.appendChild(textArea);
+    textArea.select();
+
+    try {
+      document.execCommand('copy');
+      setIsCopied(true);
+      toast({
+        title: "Copied!",
+        description: "The cleaned code has been copied to your clipboard.",
+      });
+      setTimeout(() => setIsCopied(false), 3000);
+    } catch (err) {
+      console.error('Failed to copy text: ', err);
+      toast({
+        title: "Error",
+        description: "Failed to copy the code.",
+        variant: "destructive",
+      });
+    }
+
+    document.body.removeChild(textArea);
   };
 
   return (
