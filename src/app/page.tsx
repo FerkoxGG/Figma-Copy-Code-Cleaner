@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Clipboard, ClipboardCheck, Sparkles, Loader2 } from "lucide-react";
+import { Clipboard, ClipboardCheck, Sparkles, Loader2, Trash2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type Language = "text" | "html" | "css" | "js";
@@ -44,6 +44,10 @@ export default function Home() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleClear = () => {
+    setFigmaCode("");
   };
 
   const handleCopy = () => {
@@ -127,6 +131,16 @@ export default function Home() {
               <CardHeader>
                 <CardTitle className="flex items-center justify-between text-xl font-semibold">
                   <span>Messy Code</span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleClear}
+                    disabled={!figmaCode.trim()}
+                    className="hover:bg-primary/10 rounded-full"
+                    aria-label="Clear code input"
+                  >
+                    <Trash2 className="h-5 w-5" />
+                  </Button>
                 </CardTitle>
               </CardHeader>
               <CardContent>
