@@ -2,8 +2,6 @@
 
 Una herramienta web sencilla y potente para limpiar y normalizar código copiado desde editores como Figma, Word, y otras fuentes que suelen introducir caracteres extraños, espaciado inconsistente o puntuación tipográfica.
 
-![Captura de pantalla de la aplicación Limpiador de Código](https://i.imgur.com/example.png)
-
 ## ✨ Características Principales
 
 - **Limpieza Multi-Lenguaje:** Soporte especializado para `HTML`, `CSS`, `JavaScript` y `Texto Plano`.
